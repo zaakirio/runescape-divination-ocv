@@ -263,13 +263,10 @@ def rotateCamera():
 
 
 def divinationBot():
-    """Simplified Divination bot with better timing"""
-
     print("Starting Divination bot...")
     print("Press Ctrl+C to stop")
-
     wisp_harvest_count = 0
-    max_harvests_before_rift = 1  # Harvest once before going to rift
+    max_harvests_before_rift = 2 
 
     try:
         while True:
@@ -286,8 +283,8 @@ def divinationBot():
                 pyautogui.moveTo(x, y, duration=click_duration)
                 pyautogui.click()
 
-                # Random harvest time between 30-40 seconds
-                harvest_time = random.uniform(30, 40)
+                # Random harvest time between 20-30 seconds
+                harvest_time = random.uniform(20, 30)
                 print(f"Harvesting for {harvest_time:.1f} seconds...")
 
                 time.sleep(harvest_time)
@@ -300,7 +297,7 @@ def divinationBot():
                     print(f"Time to convert at rift (after {wisp_harvest_count} harvests)")
 
                     # Try to find and click the rift with retries
-                    max_rift_attempts = 8
+                    max_rift_attempts = 10
                     rift_found = False
 
                     for attempt in range(max_rift_attempts):
@@ -311,7 +308,7 @@ def divinationBot():
                             _, rift_x, rift_y = rift_result
 
                             # Random click duration
-                            click_duration = random.uniform(0.4, 0.6)
+                            click_duration = random.uniform(0.3, 0.7)
                             print(f"Clicking energy rift at ({rift_x}, {rift_y})")
 
                             pyautogui.moveTo(rift_x, rift_y, duration=click_duration)
@@ -349,7 +346,5 @@ def divinationBot():
         print(f"\nBot stopped. Total harvests completed: {wisp_harvest_count}")
 
 
-# Run the bot
 if __name__ == "__main__":
-    # Run the full divination bot
     divinationBot()
