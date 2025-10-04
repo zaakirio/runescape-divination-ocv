@@ -1,115 +1,194 @@
-import random
 import pyautogui
-import os
+import cv2
+import numpy as np
+import time
 
-
-
-def findWisp():
-    # We should take a screenshot of the region where we expect to find the wisp
+def findWispWithBlobDetection():
+    """Find wisps using blob detection - more reliable than color matching"""
+    
+    # Take screenshot
     screenshot = pyautogui.screenshot(region=(300, 300, 400, 400))  # Adjust region as needed
-    screenshot.save('screenshot.png')
     
-    # Updated wisp colors based on your data analysis
-    # Bright greens and blue-greens that likely represent wisps
-    wisp_colours = [
-        # Original colors
-        (71, 138, 130), (95, 176, 176), (171, 210, 225),
-        (46, 84, 49), (63, 111, 83), (55, 88, 67),
-        (77, 150, 145), (81, 155, 152), (83, 159, 156),
-        (86, 161, 161), (97, 146, 167), (116, 147, 158),
-        (148, 186, 205), (143, 175, 184),
-        # Additional blue-green variations
-        (72, 111, 108), (67, 131, 120), (86, 124, 126),
-        (58, 113, 112), (56, 109, 94), (55, 102, 80),
-        (52, 85, 58), (43, 77, 41), (40, 82, 34)
-    ]
+    # Convert PIL image to OpenCV format
+    screenshot_np = np.array(screenshot)
+    screenshot_bgr = cv2.cvtColor(screenshot_np, cv2.COLOR_RGB2BGR)
     
-    def is_terrain_color(color):
-        """Filter out dark/medium green terrain colors"""
-        r, g, b = color
-        # Terrain colors typically have:
-        # - Red: 20-65
-        # - Green: 40-90
-        # - Blue: 0-30
-        # - And green is dominant but not too bright
-        if (20 <= r <= 65 and 40 <= g <= 90 and 0 <= b <= 30 and 
-            g > r and g < 100):  # Green dominant but not bright
-            return True
+    # Save original for debugging
+    cv2.imwrite('original.png', screenshot_bgr)
+    
+    # Convert to HSV for better color filtering
+    hsv = cv2.cvtColor(screenshot_bgr, cv2.COLOR_BGR2HSV)
+    
+    # Define HSV ranges for wisp colors
+    # Bright greens/yellows (typical wisp colors)
+    lower_bright = np.array([40, 100, 100])  # Hue, Saturation, Value
+    upper_bright = np.array([80, 255, 255])
+    
+    # Blue-greens (alternative wisp colors)
+    lower_blue_green = np.array([80, 50, 50])
+    upper_blue_green = np.array([110, 255, 255])
+    
+    # Create masks for both color ranges
+    mask_bright = cv2.inRange(hsv, lower_bright, upper_bright)
+    mask_blue_green = cv2.inRange(hsv, lower_blue_green, upper_blue_green)
+    
+    # Combine masks
+    mask = cv2.bitwise_or(mask_bright, mask_blue_green)
+    
+    # Apply morphological operations to clean up
+    kernel = np.ones((3, 3), np.uint8)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)  # Remove noise
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)  # Fill gaps
+    
+    # Save mask for debugging
+    cv2.imwrite('mask.png', mask)
+    
+    # Find contours (blobs)
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # Filter and find wisp-like blobs
+    wisp_candidates = []
+    
+    for contour in contours:
+        area = cv2.contourArea(contour)
         
-        # Also filter very dark colors (shadows/borders)
-        if r <= 30 and g <= 40 and b <= 10:
-            return True
+        # Filter by area (wisps are usually medium-sized)
+        if 50 < area < 5000:  # Adjust these thresholds based on your wisp size
+            # Get bounding box
+            x, y, w, h = cv2.boundingRect(contour)
             
-        return False
+            # Calculate aspect ratio
+            aspect_ratio = float(w) / h
+            
+            # Wisps are usually somewhat circular/oval
+            if 0.5 < aspect_ratio < 2.0:
+                # Calculate center point
+                center_x = x + w // 2
+                center_y = y + h // 2
+                
+                # Calculate circularity
+                perimeter = cv2.arcLength(contour, True)
+                circularity = 4 * np.pi * area / (perimeter * perimeter) if perimeter > 0 else 0
+                
+                # Wisps tend to be somewhat circular
+                if circularity > 0.3:  # Adjust threshold as needed
+                    wisp_candidates.append({
+                        'center': (center_x, center_y),
+                        'area': area,
+                        'circularity': circularity,
+                        'contour': contour
+                    })
     
-    # Now we should sample up to 500 random pixels in the screenshot to see if any match the wisp colors
-    for _ in range(1000):
-        x = random.randint(0, screenshot.width - 1)
-        y = random.randint(0, screenshot.height - 1)
-        pixel_color = screenshot.getpixel((x, y))
+    # Debug visualization
+    debug_image = screenshot_bgr.copy()
+    for candidate in wisp_candidates:
+        cv2.drawContours(debug_image, [candidate['contour']], -1, (0, 255, 0), 2)
+        cv2.circle(debug_image, candidate['center'], 3, (255, 0, 0), -1)
+    cv2.imwrite('detected_wisps.png', debug_image)
+    
+    if wisp_candidates:
+        # Sort by area (larger wisps might be closer/better targets)
+        wisp_candidates.sort(key=lambda x: x['area'], reverse=True)
         
-        # Skip terrain colors
-        if is_terrain_color(pixel_color):
-            continue
-            
-        print(f"Checking pixel at ({x}, {y}) with color {pixel_color}")
-        if pixel_color in wisp_colours:
-            # Convert back to screen coordinates
-            screen_x = x + 300
-            screen_y = y + 300
-            print(f"Wisp color found at screen coordinates: ({screen_x}, {screen_y}) with color {pixel_color}")
-            return (screen_x, screen_y) # Return screen coordinates
-    print("Wisp not found in sampled pixels.")
+        # Get the best candidate
+        best_wisp = wisp_candidates[0]
+        
+        # Convert to screen coordinates
+        screen_x = best_wisp['center'][0] + 300
+        screen_y = best_wisp['center'][1] + 300
+        
+        print(f"Wisp found at screen coordinates: ({screen_x}, {screen_y})")
+        print(f"Area: {best_wisp['area']}, Circularity: {best_wisp['circularity']:.2f}")
+        
+        return (screen_x, screen_y)
+    
+    print("No wisps detected")
     return None
 
-def findEnergyRift():
-    # Placeholder function for finding energy rift
-    # Implement similar logic as findWisp with appropriate colors and region
-    pass
 
-def clickEnergyRift():
-        energy_rift_colours = [
-        (191, 234, 119), (191, 235, 119), (191, 235, 120),
-        (193, 233, 111), (193, 234, 112), (193, 234, 113),
-        (195, 234, 125), (195, 232, 106), (195, 226, 111),
-        (196, 232, 109), (198, 229, 95), (198, 230, 97),
-        (200, 236, 137), (189, 233, 79), (189, 234, 88),
-        (189, 231, 115), (187, 221, 111), (185, 235, 111),
-        (174, 236, 97), (177, 236, 102), (179, 236, 62),
-        (151, 237, 69), (145, 237, 62), (142, 237, 58),
-        (163, 236, 85), (169, 62, 0), 
-    ]
+def findWispSimplified():
+    """Simplified version using template matching if you have a good wisp image"""
+    
+    # Take screenshot
+    screenshot = pyautogui.screenshot(region=(300, 300, 400, 400))
+    screenshot_np = np.array(screenshot)
+    screenshot_bgr = cv2.cvtColor(screenshot_np, cv2.COLOR_RGB2BGR)
+    
+    # Convert to HSV
+    hsv = cv2.cvtColor(screenshot_bgr, cv2.COLOR_BGR2HSV)
+    
+    # Create a mask for bright colors (wisps are usually bright)
+    # This focuses on high value (brightness) and high saturation
+    lower = np.array([0, 50, 150])   # Any hue, medium saturation, high brightness
+    upper = np.array([180, 255, 255])
+    
+    mask = cv2.inRange(hsv, lower, upper)
+    
+    # Find bright blobs
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    if contours:
+        # Find the largest bright blob
+        largest_contour = max(contours, key=cv2.contourArea)
+        
+        # Get center
+        M = cv2.moments(largest_contour)
+        if M["m00"] != 0:
+            cx = int(M["m10"] / M["m00"])
+            cy = int(M["m01"] / M["m00"])
+            
+            # Convert to screen coordinates
+            screen_x = cx + 300
+            screen_y = cy + 300
+            
+            print(f"Wisp found at: ({screen_x}, {screen_y})")
+            return (screen_x, screen_y)
+    
+    return None
+
 
 def clickWisp():
-    wisp_location = findWisp()
+    """Click on detected wisp"""
+    # Try blob detection first
+    wisp_location = findWispWithBlobDetection()
+    
+    # If blob detection fails, try simplified method
+    if not wisp_location:
+        print("Blob detection failed, trying simplified method...")
+        wisp_location = findWispSimplified()
+    
     if wisp_location:
-        pyautogui.moveTo(wisp_location[0], wisp_location[1], duration=0.5)
+        pyautogui.moveTo(wisp_location[0], wisp_location[1], duration=0.1)
         pyautogui.click()
         print("Clicked on the wisp at:", wisp_location)
+        return True
     else:
         print("Wisp not found, cannot click.")
-
-clickWisp()
-
-# Move mouse to (100, 200) and click
-# pyautogui.moveTo(100, 200, duration=0.5)
-# pyautogui.click()
-# # Toggle Caps Lock and type
-# pyautogui.press('capslock')  # Toggle on/off
-# pyautogui.write('Hello, World!', interval=0.1)
-
-# # Capture screen region and save
-# screenshot = pyautogui.screenshot(region=(0, 0, 300, 400))
-# screenshot.save('capture.png')
+        return False
 
 
-
-
-# def main():
-#     print("Automation script executed.")
-#     sleep(2)  # Pause for 2 seconds
+def continuousWispHunting(interval=3):
+    """Continuously hunt wisps"""
+    print("Starting wisp hunting... Press Ctrl+C to stop")
     
-#     while True:
-#         findWisp()
+    try:
+        while True:
+            if clickWisp():
+                print("Waiting for wisp to be harvested...")
+                time.sleep(3)  # Wait for harvest animation
+            else:
+                print(f"No wisp found, checking again in {interval} seconds...")
+            
+            time.sleep(interval)
+            
+    except KeyboardInterrupt:
+        print("\nStopped wisp hunting")
+
+
+# Run the detection
+if __name__ == "__main__":
+    # Single detection
+    clickWisp()
     
-     
+    # Or run continuous hunting
+    # continuousWispHunting()
