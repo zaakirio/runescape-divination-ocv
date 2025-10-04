@@ -2,6 +2,7 @@
 import pyautogui
 import cv2
 import numpy as np
+import os
 
 
 def capture_screenshot(region):
@@ -76,6 +77,11 @@ def apply_morphology(mask, operations):
 
 def save_debug_image(image, filename):
     """Save image for debugging"""
+    # Create directory if it doesn't exist
+    directory = os.path.dirname(filename)
+    if directory and not os.path.exists(directory):
+        os.makedirs(directory)
+
     cv2.imwrite(filename, image)
 
 

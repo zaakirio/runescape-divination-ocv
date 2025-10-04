@@ -89,12 +89,13 @@ class CameraConfig:
 class DebugConfig:
     """Debug output configuration"""
     ENABLED = True
+    DEBUG_DIR = 'debug-screenshots'
 
     # File names for debug output
-    WISP_ORIGINAL = 'original.png'
-    WISP_MASK = 'mask.png'
-    WISP_DETECTED = 'detected_objects.png'
+    WISP_ORIGINAL = 'debug-screenshots/original.png'
+    WISP_MASK = 'debug-screenshots/mask.png'
+    WISP_DETECTED = 'debug-screenshots/detected_objects.png'
 
-    RIFT_ORIGINAL = 'rift_original.png'
-    RIFT_MASK = 'rift_mask.png'
-    RIFT_DETECTED = 'rift_detected.png'
+    RIFT_ORIGINAL = 'debug-screenshots/rift_original.png'
+    RIFT_MASK = 'debug-screenshots/rift_mask.png'
+    RIFT_DETECTED = 'debug-screenshots/rift_detected.png'
