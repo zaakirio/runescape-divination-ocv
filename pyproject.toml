@@ -1,0 +1,9 @@
+[project]
+name = "python-div"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "numpy>=1.24.0",
+    "opencv-python>=4.8.0",
+    "pyautogui>=0.9.54",
+]

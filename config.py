@@ -2,10 +2,10 @@
 
 class ScreenConfig:
     """Screen capture and coordinate settings"""
-    REGION_X = 300
-    REGION_Y = 300
+    REGION_X = 5
+    REGION_Y = 40
     REGION_WIDTH = 400
-    REGION_HEIGHT = 400
+    REGION_HEIGHT = 700
 
     @classmethod
     def get_region(cls):
@@ -63,10 +63,6 @@ class BotConfig:
     # Click movement duration (seconds)
     MIN_CLICK_DURATION = 0.3
     MAX_CLICK_DURATION = 0.7
-
-    # Wisp click movement duration (seconds)
-    MIN_WISP_CLICK_DURATION = 0.4
-    MAX_WISP_CLICK_DURATION = 0.6
 
     # Harvests before rift conversion
     INITIAL_HARVESTS_BEFORE_RIFT = 2

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:docs.astral.sh)",
+      "Bash(uv add:*)",
+      "Bash(uv sync:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

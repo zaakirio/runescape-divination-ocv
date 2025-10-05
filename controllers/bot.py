@@ -26,10 +26,10 @@ class BotController:
             x: screen x coordinate
             y: screen y coordinate
         """
-        # Random click duration
+        # Random click duration 
         click_duration = random.uniform(
-            BotConfig.MIN_WISP_CLICK_DURATION,
-            BotConfig.MAX_WISP_CLICK_DURATION
+            BotConfig.MIN_CLICK_DURATION,
+            BotConfig.MAX_CLICK_DURATION
         )
         print(f"Clicking wisp at ({x}, {y}) with {click_duration:.2f}s movement")
 
