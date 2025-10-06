@@ -1,6 +1,6 @@
 ﻿# RuneScape Divination Bot (OpenCV)
 
-A computer vision-based bot for automating Divination training in RuneScape using OpenCV blob detection and HSV color filtering.
+A computer vision-based bot for Divination training in RuneScape using OpenCV blob detection and HSV color filtering.
 
 ## Features
 
@@ -25,9 +25,9 @@ git clone https://github.com/zaakirio/runescape-divination-ocv.git
 cd runescape-divination-ocv
 ```
 
-### 2. Install UV (Modern Python Package Manager)
+### 2. Install UV 
 
-This project uses **UV** for fast, reliable dependency management (10-100x faster than pip):
+This project uses **UV** for fast, reliable dependency management:
 
 **On macOS/Linux:**
 ```bash
@@ -51,14 +51,6 @@ This will install:
 - `opencv-python` - Computer vision library for image processing
 - `numpy` - Numerical computing library
 - `pyautogui` - GUI automation for mouse/keyboard control
-
-**Legacy method (if not using UV):**
-```bash
-python -m venv venv
-venv\Scripts\activate     # Windows
-source venv/bin/activate  # macOS/Linux
-pip install -r requirements.txt
-```
 
 ## Configuration
 
@@ -99,14 +91,6 @@ You can adjust detection sensitivity in `config.py`:
 uv run main.py
 ```
 
-**Legacy method:**
-```bash
-# Activate your virtual environment first
-venv\Scripts\activate     # Windows
-source venv/bin/activate  # macOS/Linux
-python main.py
-```
-
 ### Stopping the Bot
 
 Press `Ctrl+C` to stop the bot gracefully.
@@ -136,7 +120,6 @@ Use these images to tune your detection parameters if the bot isn't finding wisp
 ```
 runescape-divination-ocv/
 ├── main.py                 # Main entry point
-├── blob-main.py           # Legacy blob detection implementation
 ├── config.py              # All configuration settings
 ├── pyproject.toml         # Project metadata and dependencies (UV/modern Python)
 ├── uv.lock                # Locked dependency versions for reproducibility
